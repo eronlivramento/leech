@@ -1,0 +1,60 @@
+version: '3.8'
+services:
+  leech:
+    image: ${IMAGE}
+    container_name: leech
+    environment:
+      GEO_HOST: postgres
+      GEO_PORT: 5432
+      GEO_DATABASE: geo
+      GEO_USER: postgres
+      GEO_PASSWORD: admin
+      GEO_SCHEMA: geolocation
+      CEP_INPUT_TABLE: ceps_range
+      MONGO_USER: mongouser
+      MONGO_PASSWORD: password
+      MONGO_CONFIGS_DB: configs
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+    links:
+     - postgres
+     - mongo
+
+  postgres:
+    image: postgres:12-alpine
+    container_name: ${POSTGRES_NAME}
+    environment:
+      POSTGRES_DB: geo
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: admin
+    ports:
+      - 5434:5432
+    volumes:
+        - ./scripts/docker-entrypoint-initdb.d/setup.sql:/docker-entrypoint-initdb.d/setup.sql
+
+  # Database - Mongo DB
+  mongo:
+    image: mongo
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: mongouser
+      MONGO_INITDB_ROOT_PASSWORD: password
+    ports:
+      - "27017:27017"
+    volumes:
+      - ./scripts/docker-entrypoint-initdb.d/mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+
+  # Database Manager
+  mongo-express:
+    image: mongo-express
+    ports:
+      - 8099:8081
+    depends_on:
+      - mongo
+    environment:
+      ME_CONFIG_BASICAUTH_USERNAME: express
+      ME_CONFIG_BASICAUTH_PASSWORD: 123456
+      ME_CONFIG_MONGODB_PORT: 27017
+      ME_CONFIG_MONGODB_ADMINUSERNAME: mongouser
+      ME_CONFIG_MONGODB_ADMINPASSWORD: password
+    links:
+      - mongo
